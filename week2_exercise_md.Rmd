@@ -131,7 +131,7 @@ ggplot(boar,aes(speed_ms)) +
   geom_histogram( )
 
 ggplot(boar,aes(speed_ms, y = steplength), colour = TierID) +
-  geom_point()
+  geom_point() 
 ```
 The histogramm shows us that most steps have very low to no speed. 
 The scatter plot might has a beam like structure. each beam might represent the slope as a relation of steplength and speed_ms to the sampling rate. 
