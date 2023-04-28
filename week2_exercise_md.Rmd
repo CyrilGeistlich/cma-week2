@@ -15,6 +15,7 @@ library("readr")
 library("sf") 
 library("ggplot2") # to visualize data
 library("gitcreds")
+library("dplyr")
 ```
 # Task 1: Import Data
 
@@ -39,6 +40,9 @@ ggplot(boar, aes(DatetimeUTC, TierName)) +
 The cows were tracked during different time intervals, but with a lot of overlap. 
 
 ```{r timespan per cow}
+boar <- boar |>
+  group_by(TierName) |>
+  mutate(diff_s = as.numeric(difftime(lead(DatetimeUTC),DatetimeUTC)))
 
 #Time span for each cow
 ('Ruth')
@@ -58,11 +62,6 @@ The Animals were tracked from "2014-08-22 21:00:12 UTC" until "2015-07-27 11:00:
 The Animals were not tracked during the same periods of time. Ruth & Rosa were tracked for a shorter period of time. 
 
 ```{r sample rate}
-boar <- boar |>
-  group_by(TierName) |>
-  mutate(diff_s = as.numeric(difftime(lead(DatetimeUTC),DatetimeUTC)))
-
-
 ggplot(boar, aes(diff_s)) + 
   geom_histogram(binwidth = 10) + 
   lims(x = c(0,5000),
