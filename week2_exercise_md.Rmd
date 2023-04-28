@@ -24,7 +24,8 @@ library("dplyr")
 boar<- read_delim("data/wildschwein_BE_2056.csv", ",")
 boar<- st_as_sf(boar, coords = c("E", "N"), crs = 2056, remove = FALSE)
 ```
-# Task 2
+# Task 2: Getting an Overview
+
 ```{r Number of Animals}
 (unique(boar$TierName))
 ```
@@ -37,14 +38,14 @@ boar<- st_as_sf(boar, coords = c("E", "N"), crs = 2056, remove = FALSE)
 ggplot(boar, aes(DatetimeUTC, TierName)) +
   geom_point()
 ```
-The cows were tracked during different time intervals, but with a lot of overlap. 
+The boars were tracked during different time intervals, but with a lot of overlap. 
 
-```{r timespan per cow}
+```{r timespan per boar}
 boar <- boar |>
   group_by(TierName) |>
   mutate(diff_s = as.numeric(difftime(lead(DatetimeUTC),DatetimeUTC)))
 
-#Time span for each cow
+#Time span for each boar
 ('Ruth')
 ruth <- boar[boar$TierName == 'Ruth',]
 (min(ruth$DatetimeUTC))
@@ -70,7 +71,7 @@ ggplot(boar, aes(diff_s)) +
 ```
 The sample rate was not continouse. There seem to be three main sample rates. 
 
-```{r sample rate per cow}
+```{r sample rate per boar}
 ruth |>
   filter(DatetimeUTC < "2014-12-9") |>
   ggplot(aes(DatetimeUTC, diff_s), colour = TierName) +
@@ -89,13 +90,13 @@ rosa |>
   geom_point() +
   geom_line()
 ```
-The sample rate for each cow was different. 
+The sample rate for each boar was different. 
 Ruth had an sample rate around 900s approximately the first month. After that the sample rate was changed to about 3000-3500s/sample and during the nights the sample rate was further reduced to about 11000s/sample. 
 Sabi shows a sample rate of about 900s/sample during the day and 11000s/sample during the night.
 Rosa had a sample rate of about 900 for the first days and later the sample rate changes to the same day and night cycle as Sabi. 
-There seem to be some outliers in the samplerate for each cow. 
+There seem to be some outliers in the samplerate for each boar. 
 
-```{r max min samplingrate per cow}
+```{r max min samplingrate per boar}
 
 ("Ruth")
 (min(ruth$diff_s, na.rm = TRUE))
@@ -135,3 +136,91 @@ ggplot(boar,aes(speed_ms, y = steplength), colour = TierID) +
 ```
 The histogramm shows us that most steps have very low to no speed. 
 The scatter plot might has a beam like structure. each beam might represent the slope as a relation of steplength and speed_ms to the sampling rate. 
+
+# Task 4: Cross-scale movement analysis
+
+```{r load caro data}
+caro <- read_delim("data/caro60.csv", ",")
+caro <-st_as_sf(caro, coords = c("E", "N"), crs = 2056, remove = FALSE)
+```
+```{r reduce granularity}
+caro_3 <- caro[seq(1, nrow(caro), 3), ] |>
+   mutate(diff_s = as.numeric(difftime(lead(DatetimeUTC),DatetimeUTC)))
+caro_6 <- caro[seq(1, nrow(caro), 6), ] |>
+   mutate(diff_s = as.numeric(difftime(lead(DatetimeUTC),DatetimeUTC)))
+caro_9 <- caro[seq(1, nrow(caro), 9), ] |>
+   mutate(diff_s = as.numeric(difftime(lead(DatetimeUTC),DatetimeUTC)))
+```
+
+```{r max time span caro}
+caro <- caro |>
+  mutate(diff_s = as.numeric(difftime(lead(DatetimeUTC),DatetimeUTC)))
+
+
+#Time span
+(min(caro$DatetimeUTC))
+(max(caro$DatetimeUTC))
+```
+```{r caro sample rate}
+caro |>
+  ggplot(aes(DatetimeUTC, diff_s)) +
+  geom_point() +
+  geom_line()
+```
+We have a steady sample rate of 1s over the whole data set, respectively 3,6 and 9s for the resampled sets. 
+
+```{r caro steplength & speed}
+calc_movement_variables <- function(df){
+  df |> 
+  mutate(steplength = ((E - lead(E))^2 + (N - lead(N))^2)^0.5) |>
+  mutate(speed_ms = as.numeric(steplength/diff_s))
+}
+
+caro <- calc_movement_variables(caro)
+caro_3 <- calc_movement_variables(caro_3)
+caro_6 <- calc_movement_variables(caro_6)
+caro_9 <- calc_movement_variables(caro_9)
+```
+ 
+```{r visualise tracks}
+ggplot(data = NULL, aes(E,N)) +
+  geom_point(data = caro,size = 0.5, aes(color = "1s"), alpha = 0.9) + 
+  geom_path(data = caro, aes(color = "1s"),, alpha = 0.9) +
+  geom_point(data = caro_3,size = 0.5, aes(color = "3s"),, alpha = 0.9) + 
+  geom_path(data = caro_3,aes(color = "3s"),, alpha = 0.9) +
+  geom_point(data = caro_6,size = 0.5,aes(color = "6s"),, alpha = 0.9) + 
+  geom_path(data = caro_6,aes(color = "6s"),, alpha = 0.9) +
+  geom_point(data = caro_9,size = 0.5,aes(color = "9s"),, alpha = 0.9) + 
+  geom_path(data = caro_9,aes(color = "9s"),, alpha = 0.9) +
+  ggtitle("Comparing 1,3,6 and 9 Minute resampled data") + 
+  labs(x = "E",
+       y = "N",
+         color = "Legend") 
+
+```
+```{r visualise speed}
+ggplot(data = NULL, aes(DatetimeUTC, speed_ms)) +
+  geom_point(data = caro,size = 0.5, aes(color = "1s"), alpha = 0.9) + 
+  geom_path(data = caro, aes(color = "1s"),, alpha = 0.9) +
+  geom_point(data = caro_3,size = 0.5, aes(color = "3s"),, alpha = 0.9) + 
+  geom_path(data = caro_3,aes(color = "3s"),, alpha = 0.9) +
+  geom_point(data = caro_6,size = 0.5,aes(color = "6s"),, alpha = 0.9) + 
+  geom_path(data = caro_6,aes(color = "6s"),, alpha = 0.9) +
+  geom_point(data = caro_9,size = 0.5,aes(color = "9s"),, alpha = 0.9) + 
+  geom_path(data = caro_9,aes(color = "9s"),, alpha = 0.9) +
+  ggtitle("Comparing 1,3,6 and 9 Minute resampled data velocities") + 
+  labs(x = "Time",
+       y = "m/s",
+         color = "Legend") 
+
+```
+ 
+# Task 5: Deriving Movement Parameters II: Rolling Window Functions
+
+```{r}
+
+```
+
+# Task 6: Add Posmo Data to repository
+  
+# Task 7: Explore your Movement Data
