@@ -1,0 +1,68 @@
+---
+title: "week2_exercise"
+author: "Cyril Geistlich"
+date: "2023-04-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r import libraries}
+library("readr") 
+library("sf") 
+library("ggplot2") # to visualize data
+```
+
+```{r import data}
+
+boar<- read_delim("data/wildschwein_BE_2056.csv", ",")
+boar<- st_as_sf(boar, coords = c("E", "N"), crs = 2056, remove = FALSE)
+```
+```{r delta time}
+(delta_time <- as.integer(difftime(max(boar$DatetimeUTC),min(boar$DatetimeUTC),units = 'secs')))
+```
+
+```{r data exploration}
+boar$TierName |> unique()
+
+ggplot(boar, aes(DatetimeUTC, TierName)) +
+  geom_point()
+```
+```{r sample rate}
+boar <- boar |>
+  group_by(TierName) |>
+  mutate(diff_s = as.numeric(difftime(lead(DatetimeUTC),DatetimeUTC)))
+
+
+ggplot(boar, aes(diff_s)) + 
+  geom_histogram(binwidth = 10) + 
+  lims(x = c(0,5000))
+```
+```{r}
+boar |>
+  filter(DatetimeUTC < "2014-08-24") |>
+  ggplot(aes(DatetimeUTC, diff_s), colour = TierName) +
+  geom_point() +
+  geom_line()
+```
+
+```{r calculate steplength}
+boar <- boar |> 
+  group_by(TierName) |>
+  mutate(steplength = ((E - lead(E))^2 + (N - lead(N))^2)^0.5)
+```
+
+
+```{r calculate speed}
+boar <- boar |> 
+  group_by(TierName) |>
+  mutate(speed_ms = as.numeric(steplength/diff_s))
+```
+
+```{r}
+hist(boar$speed_ms)
+```
+
