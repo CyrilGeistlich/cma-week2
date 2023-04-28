@@ -218,9 +218,28 @@ ggplot(data = NULL, aes(DatetimeUTC, speed_ms)) +
 # Task 5: Deriving Movement Parameters II: Rolling Window Functions
 
 ```{r}
-
+library("zoo")
+```
+```{r rollmean caro}
+("k = 2")
+(summary(rollmean(caro$speed_ms, k = 2, fill = NA, align = "left")))
+("k = 4")
+(summary(rollmean(caro$speed_ms, k = 4, fill = NA, align = "left")))
+("k = 10")
+(summary(rollmean(caro$speed_ms, k = 10, fill = NA, align = "left")))
+("k = 20")
+(summary(rollmean(caro$speed_ms, k = 20, fill = NA, align = "left")))
 ```
 
 # Task 6: Add Posmo Data to repository
+
+```{r}
+
+```
   
 # Task 7: Explore your Movement Data
+
+```{r}
+
+```
+
