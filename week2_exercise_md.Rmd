@@ -15,22 +15,47 @@ library("readr")
 library("sf") 
 library("ggplot2") # to visualize data
 ```
+# Task 1: Import Data
 
 ```{r import data}
 
 boar<- read_delim("data/wildschwein_BE_2056.csv", ",")
 boar<- st_as_sf(boar, coords = c("E", "N"), crs = 2056, remove = FALSE)
 ```
+# Task 2
+```{r Number of Animals}
+(unique(boar$TierName))
+```
+3 Animals were tracked
+
 ```{r delta time}
 (delta_time <- as.integer(difftime(max(boar$DatetimeUTC),min(boar$DatetimeUTC),units = 'secs')))
 ```
-
-```{r data exploration}
-boar$TierName |> unique()
-
+```{r Timespan plot}
 ggplot(boar, aes(DatetimeUTC, TierName)) +
   geom_point()
 ```
+The cows were tracked during different time intervals, but with a lot of overlap. 
+
+```{r timespan per cow}
+
+#Time span for each cow
+('Ruth')
+ruth <- boar[boar$TierName == 'Ruth',]
+(min(ruth$DatetimeUTC))
+(max(ruth$DatetimeUTC))
+('Sabi')
+sabi <- boar[boar$TierName == 'Sabi',]
+(min(sabi$DatetimeUTC))
+(max(sabi$DatetimeUTC))
+('Rosa')
+rosa <- boar[boar$TierName == 'Rosa',]
+(min(rosa$DatetimeUTC))
+(max(rosa$DatetimeUTC))
+```
+The Animals were tracked from "2014-08-22 21:00:12 UTC" until "2015-07-27 11:00:14 UTC". 
+The Animals were not tracked during the same periods of time. Ruth & Rosa were tracked for a shorter period of time. 
+
 ```{r sample rate}
 boar <- boar |>
   group_by(TierName) |>
@@ -39,15 +64,54 @@ boar <- boar |>
 
 ggplot(boar, aes(diff_s)) + 
   geom_histogram(binwidth = 10) + 
-  lims(x = c(0,5000))
+  lims(x = c(0,5000),
+       y = c(0,5000))
+
 ```
-```{r}
-boar |>
-  filter(DatetimeUTC < "2014-08-24") |>
+The sample rate was not continouse. There seem to be three main sample rates. 
+
+```{r sample rate per cow}
+ruth |>
+  filter(DatetimeUTC < "2014-12-9") |>
+  ggplot(aes(DatetimeUTC, diff_s), colour = TierName) +
+  geom_point() +
+  geom_line()
+
+sabi |>
+  filter(DatetimeUTC < "2014-8-30") |>
+  ggplot(aes(DatetimeUTC, diff_s), colour = TierName) +
+  geom_point() +
+  geom_line()
+
+rosa |>
+  filter(DatetimeUTC < "2014-11-20") |>
   ggplot(aes(DatetimeUTC, diff_s), colour = TierName) +
   geom_point() +
   geom_line()
 ```
+The sample rate for each cow was different. 
+Ruth had an sample rate around 900s approximately the first month. After that the sample rate was changed to about 3000-3500s/sample and during the nights the sample rate was further reduced to about 11000s/sample. 
+Sabi shows a sample rate of about 900s/sample during the day and 11000s/sample during the night.
+Rosa had a sample rate of about 900 for the first days and later the sample rate changes to the same day and night cycle as Sabi. 
+There seem to be some outliers in the samplerate for each cow. 
+
+```{r max min samplingrate per cow}
+
+("Ruth")
+(min(ruth$diff_s, na.rm = TRUE))
+(max(ruth$diff_s, na.rm = TRUE))
+
+
+("Sabi")
+(min(sabi$diff_s, na.rm = TRUE))
+(max(sabi$diff_s, na.rm = TRUE))
+
+("Rosa")
+(min(rosa$diff_s, na.rm = TRUE))
+(max(rosa$diff_s, na.rm = TRUE))
+
+```
+# Task 3: Deriving Movement Parameters I: Speed
 
 ```{r calculate steplength}
 boar <- boar |> 
@@ -62,7 +126,12 @@ boar <- boar |>
   mutate(speed_ms = as.numeric(steplength/diff_s))
 ```
 
-```{r}
-hist(boar$speed_ms)
-```
+```{r plot speed per step}
+ggplot(boar,aes(speed_ms)) +
+  geom_histogram( )
 
+ggplot(boar,aes(speed_ms, y = steplength), colour = TierID) +
+  geom_point()
+```
+The histogramm shows us that most steps have very low to no speed. 
+The scatter plot might has a beam like structure. each beam might represent the slope as a relation of steplength and speed_ms to the sampling rate.
