@@ -251,10 +251,11 @@ tm_shape(posmo) +
   tm_dots(col = "transport_mode")
 ```
 
-```{r}
+```{r calc movement parameters}
 calc_posmo_movement <- function(df){
+  coords <- data.frame(st_coordinates(df))
   df |> mutate(diff_s = as.numeric(difftime(lead(datetime),datetime))) |>
-  mutate(steplength = ((lon_x - lead(lon_x))^2 + (lat_y - lead(lat_y))^2)^0.5) |>
+  mutate(steplength = ((coords$X - lead(coords$X))^2 + (coords$Y - lead(coords$Y))^2)^0.5) |>
   mutate(speed_ms = as.numeric(steplength/diff_s))
   df <- df[!is.infinite(df$speed_ms), na.omit = TRUE]
   }
@@ -264,14 +265,12 @@ posmo <- calc_posmo_movement(posmo)
 ```
 
 ```{r posmo speed plot}
-ggplot(data = posmo, aes(datetime, speed_ms)) +
+ggplot(data = posmo, aes(transport_mode, speed_ms)) +
   geom_point() + 
-  geom_path() +
-  ggtitle("posmo velocity plot") + 
+  ggtitle("posmo velocity by transportmode") + 
   labs(x = "Time",
-       y = "m/s",
-         color = "Legend") +
-  ylim(c(0,1))
+       y = "m/s") +
+  ylim(c(0,50))
   
 ```
 
