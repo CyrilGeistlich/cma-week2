@@ -233,13 +233,45 @@ library("zoo")
 
 # Task 6: Add Posmo Data to repository
 
-```{r}
+```{r load posmo data}
+posmo <- read_delim("data/posmo_2023-04-28T00_00_00+02_00-2023-04-30T23_59_59+02_00.csv", ",") 
+posmo <- st_as_sf(posmo,coords = c("lon_x","lat_y"), crs = 4326) 
+posmo <- st_transform(posmo, crs = 2056)
 
 ```
   
 # Task 7: Explore your Movement Data
 
-```{r}
+```{r plot posmo path}
+library("tmap") # to map raster data/background map
+color.palette <- c("blue", "green", "yellow")
 
+tmap_mode("view")
+tm_shape(posmo) +
+  tm_dots(col = "transport_mode")
+```
+
+```{r}
+calc_posmo_movement <- function(df){
+  df |> mutate(diff_s = as.numeric(difftime(lead(datetime),datetime))) |>
+  mutate(steplength = ((lon_x - lead(lon_x))^2 + (lat_y - lead(lat_y))^2)^0.5) |>
+  mutate(speed_ms = as.numeric(steplength/diff_s))
+  df <- df[!is.infinite(df$speed_ms), na.omit = TRUE]
+  }
+
+posmo <- calc_posmo_movement(posmo)
+
+```
+
+```{r posmo speed plot}
+ggplot(data = posmo, aes(datetime, speed_ms)) +
+  geom_point() + 
+  geom_path() +
+  ggtitle("posmo velocity plot") + 
+  labs(x = "Time",
+       y = "m/s",
+         color = "Legend") +
+  ylim(c(0,1))
+  
 ```
 
